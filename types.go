@@ -21,12 +21,16 @@ type QuoteMessage struct {
 	Data   *QuoteData `mapstructure:"v"`
 }
 
+//	getSocketMessage("quote_set_fields", []string{s.sessionID, "lp", "volume", "bid", "ask", "ch", "chp"}),
+//
 // QuoteData ...
 type QuoteData struct {
 	Price  *float64 `mapstructure:"lp"`
 	Volume *float64 `mapstructure:"volume"`
 	Bid    *float64 `mapstructure:"bid"`
 	Ask    *float64 `mapstructure:"ask"`
+	Change *float64 `mapstructure:"ch"`
+	Time   *int64   `mapstructure:"lp_time"`
 }
 
 // Flags ...

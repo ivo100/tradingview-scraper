@@ -3,11 +3,16 @@ package tradingview
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
+)
+
+const (
+	TradingViewSocketURL = "wss://data.tradingview.com/socket.io/websocket"
 )
 
 // Socket ...
@@ -38,7 +43,8 @@ func Connect(
 // Init connects to the tradingview web socket
 func (s *Socket) Init() (err error) {
 	s.isClosed = true
-	s.conn, _, err = (&websocket.Dialer{}).Dial("wss://data.tradingview.com/socket.io/websocket", getHeaders())
+	fmt.Printf("Connecting to %s\n", TradingViewSocketURL)
+	s.conn, _, err = (&websocket.Dialer{}).Dial(TradingViewSocketURL, getHeaders())
 	if err != nil {
 		s.onError(err, InitErrorContext)
 		return
@@ -71,7 +77,8 @@ func (s *Socket) Close() (err error) {
 // AddSymbol ...
 func (s *Socket) AddSymbol(symbol string) (err error) {
 	err = s.sendSocketMessage(
-		getSocketMessage("quote_add_symbols", []interface{}{s.sessionID, symbol, getFlags()}),
+		//getSocketMessage("quote_add_symbols", []interface{}{s.sessionID, symbol, getFlags()}),
+		getSocketMessage("quote_add_symbols", []interface{}{s.sessionID, symbol}),
 	)
 	return
 }
@@ -86,7 +93,7 @@ func (s *Socket) RemoveSymbol(symbol string) (err error) {
 
 func (s *Socket) checkFirstReceivedMessage() (err error) {
 	var msg []byte
-
+	fmt.Printf("checkFirstReceivedMessage\n")
 	_, msg, err = s.conn.ReadMessage()
 	if err != nil {
 		s.onError(err, ReadFirstMessageErrorContext)
@@ -94,6 +101,9 @@ func (s *Socket) checkFirstReceivedMessage() (err error) {
 	}
 
 	payload := msg[getPayloadStartingIndex(msg):]
+
+	fmt.Printf("payload %s\n", string(payload))
+
 	var p map[string]interface{}
 
 	err = json.Unmarshal(payload, &p)
@@ -119,7 +129,8 @@ func (s *Socket) sendConnectionSetupMessages() (err error) {
 	messages := []*SocketMessage{
 		getSocketMessage("set_auth_token", []string{"unauthorized_user_token"}),
 		getSocketMessage("quote_create_session", []string{s.sessionID}),
-		getSocketMessage("quote_set_fields", []string{s.sessionID, "lp", "volume", "bid", "ask"}),
+		getSocketMessage("quote_set_fields", []string{s.sessionID, "lp", "volume", "bid", "ask", "ch", "lp_time"}),
+		//getSocketMessage("quote_set_fields", []string{s.sessionID, "lp", "volume", "ch", "chp"}),
 	}
 
 	for _, msg := range messages {
@@ -135,6 +146,8 @@ func (s *Socket) sendConnectionSetupMessages() (err error) {
 func (s *Socket) sendSocketMessage(p *SocketMessage) (err error) {
 	payload, _ := json.Marshal(p)
 	payloadWithHeader := "~m~" + strconv.Itoa(len(payload)) + "~m~" + string(payload)
+
+	fmt.Printf("Sending %s\n", payloadWithHeader)
 
 	err = s.conn.WriteMessage(websocket.TextMessage, []byte(payloadWithHeader))
 	if err != nil {
@@ -194,16 +207,19 @@ func (s *Socket) parsePacket(packet []byte) {
 		headerLength := 6 + len(strconv.Itoa(payloadLength))
 		payload := packet[index+headerLength : index+headerLength+payloadLength]
 		index = index + headerLength + len(payload)
+		//fmt.Printf("> Payload %s\n", payload)
 
 		symbol, data, err := s.parseJSON(payload)
 		if err != nil {
 			break
 		}
 
+		//fmt.Printf(">>> Received %s - %+v\n", symbol, data)
+
 		dataArr = append(dataArr, data)
 		symbolsArr = append(symbolsArr, symbol)
 	}
-
+	// TODO: fix this nested loop !!!
 	for i := 0; i < len(dataArr); i++ {
 		isDuplicate := false
 		for j := i + 1; j < len(dataArr); j++ {
