@@ -4,7 +4,7 @@ package tradingview
 type SocketInterface interface {
 	AddSymbol(symbol string) error
 	RemoveSymbol(symbol string) error
-	Init() error
+	Init(fields ...string) error
 	Close() error
 }
 
@@ -25,12 +25,19 @@ type QuoteMessage struct {
 //
 // QuoteData ...
 type QuoteData struct {
-	Price  *float64 `mapstructure:"lp"`
-	Volume *float64 `mapstructure:"volume"`
-	Bid    *float64 `mapstructure:"bid"`
-	Ask    *float64 `mapstructure:"ask"`
-	Change *float64 `mapstructure:"ch"`
-	Time   *int64   `mapstructure:"lp_time"`
+	Price             *float64 `mapstructure:"lp"`
+	PrevClosePrice    *float64 `mapstructure:"prev_close_price"`
+	RegularClosePrice *float64 `mapstructure:"regular_close_price"`
+	RegularCloseTime  *int64   `mapstructure:"regular_close_time"`
+	HighPrice         *float64 `mapstructure:"high_price"`
+	LowPrice          *float64 `mapstructure:"low_price"`
+	OpenPrice         *float64 `mapstructure:"open_price"`
+	OpenTime          *int64   `mapstructure:"open_time"`
+	Volume            *float64 `mapstructure:"volume"`
+	Bid               *float64 `mapstructure:"bid"`
+	Ask               *float64 `mapstructure:"ask"`
+	Change            *float64 `mapstructure:"ch"`
+	Time              *int64   `mapstructure:"lp_time"`
 }
 
 // Flags ...

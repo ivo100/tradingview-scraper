@@ -29,19 +29,20 @@ type Socket struct {
 func Connect(
 	onReceiveMarketDataCallback OnReceiveDataCallback,
 	onErrorCallback OnErrorCallback,
+	fields ...string,
 ) (socket SocketInterface, err error) {
 	socket = &Socket{
 		OnReceiveMarketDataCallback: onReceiveMarketDataCallback,
 		OnErrorCallback:             onErrorCallback,
 	}
 
-	err = socket.Init()
+	err = socket.Init(fields...)
 
 	return
 }
 
 // Init connects to the tradingview web socket
-func (s *Socket) Init() (err error) {
+func (s *Socket) Init(fields ...string) (err error) {
 	s.isClosed = true
 	fmt.Printf("Connecting to %s\n", TradingViewSocketURL)
 	s.conn, _, err = (&websocket.Dialer{}).Dial(TradingViewSocketURL, getHeaders())
@@ -56,7 +57,7 @@ func (s *Socket) Init() (err error) {
 	}
 	s.generateSessionID()
 
-	err = s.sendConnectionSetupMessages()
+	err = s.sendConnectionSetupMessages(fields...)
 	if err != nil {
 		s.onError(err, ConnectionSetupMessagesErrorContext)
 		return
@@ -93,17 +94,14 @@ func (s *Socket) RemoveSymbol(symbol string) (err error) {
 
 func (s *Socket) checkFirstReceivedMessage() (err error) {
 	var msg []byte
-	fmt.Printf("checkFirstReceivedMessage\n")
+	//fmt.Printf("checkFirstReceivedMessage\n")
 	_, msg, err = s.conn.ReadMessage()
 	if err != nil {
 		s.onError(err, ReadFirstMessageErrorContext)
 		return
 	}
-
 	payload := msg[getPayloadStartingIndex(msg):]
-
-	fmt.Printf("payload %s\n", string(payload))
-
+	//fmt.Printf("payload %s\n", string(payload))
 	var p map[string]interface{}
 
 	err = json.Unmarshal(payload, &p)
@@ -125,21 +123,29 @@ func (s *Socket) generateSessionID() {
 	s.sessionID = "qs_" + GetRandomString(12)
 }
 
-func (s *Socket) sendConnectionSetupMessages() (err error) {
+func (s *Socket) sendConnectionSetupMessages(fields ...string) (err error) {
 	messages := []*SocketMessage{
 		getSocketMessage("set_auth_token", []string{"unauthorized_user_token"}),
 		getSocketMessage("quote_create_session", []string{s.sessionID}),
-		getSocketMessage("quote_set_fields", []string{s.sessionID, "lp", "volume", "bid", "ask", "ch", "lp_time"}),
-		//getSocketMessage("quote_set_fields", []string{s.sessionID, "lp", "volume", "ch", "chp"}),
+		//getSocketMessage("quote_set_fields", []string{s.sessionID, "lp", "volume", "bid", "ask", "ch", "lp_time"}),
 	}
-
 	for _, msg := range messages {
 		err = s.sendSocketMessage(msg)
 		if err != nil {
 			return
 		}
 	}
-
+	/*
+	 */
+	m := []string{s.sessionID, "lp", "lp_time", "ch", "ch_time"}
+	if len(fields) > 0 {
+		for _, field := range fields {
+			m = append(m, field)
+		}
+	}
+	msg := getSocketMessage("quote_set_fields", m)
+	//fmt.Printf("send %s\n", msg)
+	s.sendSocketMessage(msg)
 	return
 }
 
@@ -147,7 +153,7 @@ func (s *Socket) sendSocketMessage(p *SocketMessage) (err error) {
 	payload, _ := json.Marshal(p)
 	payloadWithHeader := "~m~" + strconv.Itoa(len(payload)) + "~m~" + string(payload)
 
-	fmt.Printf("Sending %s\n", payloadWithHeader)
+	//fmt.Printf("Sending %s\n", payloadWithHeader)
 
 	err = s.conn.WriteMessage(websocket.TextMessage, []byte(payloadWithHeader))
 	if err != nil {
