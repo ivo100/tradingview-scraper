@@ -3,7 +3,6 @@ package tradingview
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -44,7 +43,7 @@ func Connect(
 // Init connects to the tradingview web socket
 func (s *Socket) Init(fields ...string) (err error) {
 	s.isClosed = true
-	fmt.Printf("Connecting to %s\n", TradingViewSocketURL)
+	//fmt.Printf("Connecting to %s\n", TradingViewSocketURL)
 	s.conn, _, err = (&websocket.Dialer{}).Dial(TradingViewSocketURL, getHeaders())
 	if err != nil {
 		s.onError(err, InitErrorContext)
@@ -294,7 +293,9 @@ func (s *Socket) onError(err error, context string) {
 	if s.conn != nil {
 		s.conn.Close()
 	}
-	s.OnErrorCallback(err, context)
+	if s.OnErrorCallback != nil {
+		s.OnErrorCallback(err, context)
+	}
 }
 
 func getSocketMessage(m string, p interface{}) *SocketMessage {

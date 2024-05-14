@@ -1,5 +1,11 @@
 package tradingview
 
+import (
+	"fmt"
+	"strings"
+	"time"
+)
+
 // SocketInterface ...
 type SocketInterface interface {
 	AddSymbol(symbol string) error
@@ -50,3 +56,51 @@ type OnReceiveDataCallback func(symbol string, data *QuoteData)
 
 // OnErrorCallback ...
 type OnErrorCallback func(err error, context string)
+
+func (q *QuoteData) String() string {
+	sb := new(strings.Builder)
+	if q.OpenPrice != nil {
+		sb.WriteString(fmt.Sprintf("open price: %7.2f | ", *q.OpenPrice))
+	}
+	if q.Price != nil {
+		sb.WriteString(fmt.Sprintf("price: %7.2f | ", *q.Price))
+	}
+	if q.Time != nil {
+		//tm := chrono.UnixToMarketTime(*q.Time)
+		tm := time.Unix(*q.Time, 0)
+		sb.WriteString(fmt.Sprintf("time: %v | ", tm))
+	}
+	if q.Bid != nil {
+		sb.WriteString(fmt.Sprintf("bid %7.2f | ", *q.Bid))
+	}
+	if q.Ask != nil {
+		sb.WriteString(fmt.Sprintf("ask: %7.2f | ", *q.Ask))
+	}
+	if q.OpenTime != nil {
+		tm := time.Unix(*q.OpenTime, 0)
+		sb.WriteString(fmt.Sprintf("open time: %v | ", tm))
+	}
+	if q.RegularClosePrice != nil {
+		sb.WriteString(fmt.Sprintf("regular close price: %7.2f | ", *q.RegularClosePrice))
+	}
+	if q.RegularCloseTime != nil {
+		tm := time.Unix(*q.RegularCloseTime, 0)
+		sb.WriteString(fmt.Sprintf("regular close time: %v | ", tm))
+	}
+	if q.HighPrice != nil {
+		sb.WriteString(fmt.Sprintf("high price: %7.2f | ", *q.HighPrice))
+	}
+	if q.LowPrice != nil {
+		sb.WriteString(fmt.Sprintf(" low price: %7.2f | ", *q.LowPrice))
+	}
+	if q.PrevClosePrice != nil {
+		sb.WriteString(fmt.Sprintf("prev.close price: %7.2f | ", *q.PrevClosePrice))
+	}
+	if q.Change != nil {
+		sb.WriteString(fmt.Sprintf("change: %7.2f | ", *q.Change))
+	}
+	if q.Volume != nil {
+		sb.WriteString(fmt.Sprintf("volume: %7.2fM | ", *q.Volume/1000000.))
+	}
+	return sb.String()
+}
