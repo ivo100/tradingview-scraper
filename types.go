@@ -12,6 +12,7 @@ type SocketInterface interface {
 	RemoveSymbol(symbol string) error
 	Init(fields ...string) error
 	Close() error
+	RequestQuotes(symbol string, bars int, interval string, resultCallback OnReceiveQuoteCallback) error
 }
 
 // SocketMessage ...
@@ -27,7 +28,7 @@ type QuoteMessage struct {
 	Data   *QuoteData `mapstructure:"v"`
 }
 
-//	getSocketMessage("quote_set_fields", []string{s.sessionID, "lp", "volume", "bid", "ask", "ch", "chp"}),
+//	getSocketMessage("quote_set_fields", []string{s.quoteSessionID, "lp", "volume", "bid", "ask", "ch", "chp"}),
 //
 // QuoteData ...
 type QuoteData struct {
@@ -53,6 +54,8 @@ type Flags struct {
 
 // OnReceiveDataCallback ...
 type OnReceiveDataCallback func(symbol string, data *QuoteData)
+
+type OnReceiveQuoteCallback func(symbol string, hloc []HLOC)
 
 // OnErrorCallback ...
 type OnErrorCallback func(err error, context string)
